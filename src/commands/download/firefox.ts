@@ -6,7 +6,6 @@ import { dirname, resolve } from 'node:path'
 import { bin_name } from '../..'
 import { BASH_PATH, ENGINE_DIR, MELON_TMP_DIR } from '../../constants'
 import { log } from '../../log'
-import { commandExistsSync } from '../../utils/command-exists'
 import { downloadFileToLocation } from '../../utils/download'
 import { ensureDirectory, windowsPathToUnix } from '../../utils/fs'
 import { init } from '../init'
@@ -66,15 +65,25 @@ async function unpackFirefoxSource(name: string): Promise<void> {
   // If BSD tar adds --transform support in the future, we can use that
   // instead
   if (process.platform == 'darwin') {
-    // GNU Tar doesn't come preinstalled on any MacOS machines, so we need to
-    // check for it and ask for the user to install it if necessary
-    if (!commandExistsSync('gtar')) {
+    // Try gtar first, then tar — check that it's actually GNU tar via --version
+    async function isGnuTar(exec: string): Promise<boolean> {
+      try {
+        const { stdout } = await execa(exec, ['--version'])
+        return stdout.includes('(GNU tar)')
+      } catch {
+        return false
+      }
+    }
+
+    if (await isGnuTar('gtar')) {
+      tarExec = 'gtar'
+    } else if (await isGnuTar('tar')) {
+      tarExec = 'tar'
+    } else {
       throw new Error(
         `GNU Tar is required to extract Firefox's source on MacOS. Please install it using the command |brew install gnu-tar| or |sudo port install gnutar| and try again`
       )
     }
-
-    tarExec = 'gtar'
   }
 
   log.info(`Unpacking ${resolve(MELON_TMP_DIR, name)} to ${ENGINE_DIR}`)
