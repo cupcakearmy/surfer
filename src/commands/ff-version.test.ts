@@ -6,7 +6,7 @@ import { getFFVersion } from './ff-version'
 
 describe('getFFVersion', () => {
   it('Returns not specified with an empty config', () => {
-    const log = jest.spyOn(console, 'log')
+    const log = vi.spyOn(console, 'log')
     config.setMockRawConfig('{}')
 
     getFFVersion()
@@ -18,7 +18,7 @@ describe('getFFVersion', () => {
   })
 
   it('Returns the version from the config', () => {
-    const log = jest.spyOn(console, 'log')
+    const log = vi.spyOn(console, 'log')
     config.setMockRawConfig(
       `{"version": { "version": "1.2.3", "product": "firefox" }}`
     )
